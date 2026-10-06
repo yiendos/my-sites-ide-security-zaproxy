@@ -1,9 +1,9 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy;
 
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\Enums\TargetDatabase;
+use Yiendos\MySitesIde\Security\Zaproxy\Enums\TargetDatabase;
 
 trait InteractsWithZapApi
 {

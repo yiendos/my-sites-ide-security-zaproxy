@@ -1,0 +1,32 @@
+{
+    "name": "yiendos/my-sites-ide-security-zaproxy",
+    "description": "OWASP ZAP security scanning (CLI scans and the browser HUD) for my-sites-ide",
+    "type": "my-sites-ide-plugin",
+    "license": "MIT",
+    "keywords": ["my-sites-ide", "zap", "owasp", "security", "dast"],
+    "authors": [
+        {
+            "name": "Paul Yiend",
+            "email": "yiendos@sbmatrix.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Yiendos\\MySitesIde\\Security\\Zaproxy\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "symfony/console": "^7.3"
+    },
+    "extra": {
+        "my-sites-ide": {
+            "commands": "src/Console",
+            "compose": "docker-compose.yml",
+            "env": ".env",
+            "env-example": "env-example",
+            "services": ["zaproxy"],
+            "autostart": false
+        }
+    }
+}

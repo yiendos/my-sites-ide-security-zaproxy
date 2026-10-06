@@ -1,9 +1,10 @@
 services:
     zaproxy:
-        container_name: "zaproxy"
         image: ghcr.io/zaproxy/zaproxy:20260826-weekly
         volumes:
-            - './reports:/zap/wrk'
+            # User data lives in the IDE's storage/, outside this package - composer update
+            # replaces the package directory, and would take the reports with it
+            - '${IDE_ROOT}/storage/plugins/zaproxy/reports:/zap/wrk'
             # Helper scripts run inside the container (e.g. hud-watcher.sh, started by ide:zap-hud)
             - './scripts:/zap/scripts:ro'
             # Persists addon-management state (not scan data - core/action/newSession
@@ -17,14 +18,14 @@ services:
         cpuset: '${ZAP_CPUSET:-0,1,2,3}'
         env_file:
             - ./.env
-            - ./../../../../.env
+            - ${IDE_ROOT}/.env
         ports:
             - '8080:8080'
             - '8090:8090'
         networks:
             - my-sites-ide
 
-    # not started by `ide:spark` (deliberately excluded from APP= in .env)
+    # not started by `ide:spark` (autostart: false in composer.json)
     # invoked on demand via `php my-sites-ide ide:zap-scan <target>`
     # or `php my-sites-ide ide:zap-hud` for the browser-based Desktop UI
     # ports are only published when zap-hud runs `docker compose run --service-ports`

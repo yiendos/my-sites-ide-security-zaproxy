@@ -1,6 +1,6 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -8,13 +8,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Yiendos\MySitesIde\Security\Zaproxy\Paths;
 
 class ZapInstallManifestsCommand extends Command
 {
     /**
      * Where the Laravel stubs live, relative to this file
      */
-    private const STUB_DIR = __DIR__ . '/../environment/security/zaproxy/stubs/laravel';
+    private const STUB_DIR = __DIR__ . '/../../stubs/laravel';
 
     /**
      * The manifest config keys, and the artisan command that generates each
@@ -59,10 +60,10 @@ class ZapInstallManifestsCommand extends Command
     public function __invoke(OutputInterface $output, InputInterface $input, SymfonyStyle $io): int
     {
         $target = $input->getArgument('target');
-        $configPath = __DIR__ . "/../environment/security/zaproxy/contexts/{$target}.zap-config.php";
+        $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath)) {
-            $io->error("No config found at _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
+            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
             return Command::FAILURE;
         }
 
@@ -111,7 +112,7 @@ class ZapInstallManifestsCommand extends Command
             return null;
         }
 
-        return __DIR__ . '/../../Repos/' . substr($containerPath, strlen('/opt/repos/'));
+        return Paths::root() . '/Repos/' . substr($containerPath, strlen('/opt/repos/'));
     }
 
     /**

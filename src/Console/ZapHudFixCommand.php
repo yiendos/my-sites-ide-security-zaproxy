@@ -1,6 +1,6 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

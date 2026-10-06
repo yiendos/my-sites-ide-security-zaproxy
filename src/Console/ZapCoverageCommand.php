@@ -1,6 +1,6 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -8,7 +8,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\InteractsWithZapApi;
+use Yiendos\MySitesIde\Security\Zaproxy\Paths;
+use Yiendos\MySitesIde\Security\Zaproxy\InteractsWithZapApi;
 class ZapCoverageCommand extends Command
 {
     use InteractsWithZapApi;
@@ -36,10 +37,10 @@ class ZapCoverageCommand extends Command
     public function __invoke(OutputInterface $output, InputInterface $input, SymfonyStyle $io): int
     {
         $target = $input->getArgument('target');
-        $configPath = __DIR__ . "/../environment/security/zaproxy/contexts/{$target}.zap-config.php";
+        $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath)) {
-            $io->error("No config found at _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
+            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
             return Command::FAILURE;
         }
 

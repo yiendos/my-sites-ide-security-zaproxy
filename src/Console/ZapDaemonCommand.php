@@ -1,13 +1,12 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\InteractsWithZapApi; 
+use Yiendos\MySitesIde\Security\Zaproxy\InteractsWithZapApi;
 
 class ZapDaemonCommand extends Command
 {
@@ -101,7 +100,6 @@ class ZapDaemonCommand extends Command
         // instead, once the daemon is confirmed reachable, is what actually
         // sticks - checked via ascan/view/optionThreadPerHost reading back 2
         // afterwards, not just trusting the setter's own "OK" response.
-        Dotenv::createImmutable(__DIR__ . '/../environment/security/zaproxy')->safeLoad();
         $this->zapApi($io, 'ascan/action/setOptionThreadPerHost', [
             'Integer' => (string) (getenv('ZAP_ASCAN_THREADS_PER_HOST') ?: 2),
         ]);

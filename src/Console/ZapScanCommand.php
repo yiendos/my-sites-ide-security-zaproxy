@@ -1,8 +1,7 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -10,7 +9,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\InteractsWithZapApi;
+use Yiendos\MySitesIde\Security\Zaproxy\Paths;
+use Yiendos\MySitesIde\Security\Zaproxy\InteractsWithZapApi;
 
 class ZapScanCommand extends Command
 {
@@ -44,11 +44,6 @@ class ZapScanCommand extends Command
      */
     public function __invoke(OutputInterface $output, InputInterface $input, SymfonyStyle $io): int
     {
-        // The bootstrap only loads the root .env, so pull in zaproxy/.env here as the
-        // default source for its own config - safeLoad() + Immutable won't overwrite
-        // whatever the root .env already set, so root still wins on override.
-        Dotenv::createImmutable(__DIR__ . '/../environment/security/zaproxy')->safeLoad();
-
         $target = $input->getArgument('target');
         $full = $input->getOption('full');
         $context = $input->getOption('context');
@@ -64,7 +59,7 @@ class ZapScanCommand extends Command
         // already used for <context>.context / <context>.zap-config.php); fall
         // back to the target's hostname for an unauthenticated one-off scan.
         $siteName = $context ?? preg_replace('/[^a-zA-Z0-9.\-]/', '_', parse_url($target, PHP_URL_HOST) ?: $target);
-        $siteDir = __DIR__ . "/../environment/security/zaproxy/reports/{$siteName}";
+        $siteDir = Paths::reports("{$siteName}");
 
         if (!is_dir($siteDir) && !mkdir($siteDir, 0755, true) && !is_dir($siteDir)) {
             $io->error("Failed to create reports/{$siteName}");
@@ -95,7 +90,7 @@ class ZapScanCommand extends Command
 
         $output->writeLn(["", $command]);
         passthru($command);
-        $output->writeLn(["", "Report written to _dev/environment/security/zaproxy/reports/$report"]);
+        $output->writeLn(["", "Report written to storage/plugins/zaproxy/reports/$report"]);
 
         return Command::SUCCESS;
     }
@@ -119,7 +114,7 @@ class ZapScanCommand extends Command
         bool $full
     ): int {
         $contextFile = "{$context}.context";
-        $hostContextFile = __DIR__ . "/../environment/security/zaproxy/reports/{$contextFile}";
+        $hostContextFile = Paths::reports("{$contextFile}");
 
         if (!is_file($hostContextFile)) {
             $io->error("No context file at reports/{$contextFile} - run `ide:zap-context {$context}` first");
@@ -133,7 +128,7 @@ class ZapScanCommand extends Command
             return Command::FAILURE;
         }
 
-        $configPath = __DIR__ . "/../environment/security/zaproxy/contexts/{$context}.zap-config.php";
+        $configPath = Paths::contexts("{$context}.zap-config.php");
         $seedUrls = is_file($configPath) ? ((require $configPath)['seed_urls'] ?? []) : [];
         $seeds = array_values(array_unique(array_merge([$target], $seedUrls)));
 
@@ -249,7 +244,7 @@ class ZapScanCommand extends Command
             return Command::FAILURE;
         }
 
-        $io->success("Report written to _dev/environment/security/zaproxy/reports/{$siteName}/{$reportName}.html");
+        $io->success("Report written to storage/plugins/zaproxy/reports/{$siteName}/{$reportName}.html");
 
         return Command::SUCCESS;
     }

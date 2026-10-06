@@ -1,14 +1,14 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\InteractsWithZapApi; 
+use Yiendos\MySitesIde\Security\Zaproxy\Paths;
+use Yiendos\MySitesIde\Security\Zaproxy\InteractsWithZapApi;
 
 class ZapHudCommand extends Command
 {
@@ -53,11 +53,6 @@ class ZapHudCommand extends Command
             $this->printChecklist($io, $target, $config);
         }
 
-        // The bootstrap only loads the root .env, so pull in zaproxy/.env here as the
-        // default source for its own config - safeLoad() + Immutable won't overwrite
-        // whatever the root .env already set, so root still wins on override.
-        Dotenv::createImmutable(__DIR__ . '/../environment/security/zaproxy')->safeLoad();
-
         // zap-webswing.sh ignores CLI args, but honours the ZAP_WEBSWING_OPTS env var as a
         // full replacement of its default ZAP_OPTS (host/port/webswing stat) - so we have to
         // restate those alongside our own additions, not just append to them.
@@ -90,17 +85,17 @@ class ZapHudCommand extends Command
 
         $command .= " zaproxy sh -c " . escapeshellarg('sh ' . self::HUD_WATCHER . ' & exec zap-webswing.sh');
 
-        // ZAP_TARGET_ALIAS is baked into nginx's network alias at container-creation time
-        // (Compose substitution, see servers/nginx/docker-compose.yml) - not something this
-        // command can change at runtime, so surface it here rather than let it be a silent
+        // IDE_SITE_ALIAS is baked into the server's network alias at container-creation time
+        // (Compose substitution, see the IDE's servers/nginx/docker-compose.yml) - not something
+        // this command can change at runtime, so surface it here rather than let it be a silent
         // stale value someone forgets they changed.
-        $targetAlias = getenv('ZAP_TARGET_ALIAS') ?: 'default.test';
+        $targetAlias = getenv('IDE_SITE_ALIAS') ?: 'default.test';
 
         $this->stopConflictingContainers($io);
 
         $io->note([
             "We are going to start ZAP HUD and expect a network connection to target: $targetAlias",
-            "(this is configured via ZAP_TARGET_ALIAS in the root .env - requires 'docker compose up -d nginx' after changing it)",
+            "(this is configured via IDE_SITE_ALIAS in the root .env - requires 'docker compose up -d nginx' after changing it)",
         ]);
 
         if (!$io->confirm('Do you wish to continue?', true)) {
@@ -172,10 +167,10 @@ class ZapHudCommand extends Command
      */
     private function resolveContext(SymfonyStyle $io, string $target, ?array $config): ?array
     {
-        $hostContextFile = __DIR__ . "/../environment/security/zaproxy/reports/{$target}.context";
+        $hostContextFile = Paths::reports("{$target}.context");
 
         if (!is_file($hostContextFile)) {
-            $io->warning("No exported context at _dev/environment/security/zaproxy/reports/{$target}.context - run `ide:zap-context {$target}` first. Launching without it.");
+            $io->warning("No exported context at storage/plugins/zaproxy/reports/{$target}.context - run `ide:zap-context {$target}` first. Launching without it.");
             return null;
         }
 
@@ -198,10 +193,10 @@ class ZapHudCommand extends Command
      */
     private function loadConfig(SymfonyStyle $io, string $target): ?array
     {
-        $configPath = __DIR__ . "/../environment/security/zaproxy/contexts/{$target}.zap-config.php";
+        $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath)) {
-            $io->warning("No config found at _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php - skipping the write-route/Livewire checklist.");
+            $io->warning("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - skipping the write-route/Livewire checklist.");
             return null;
         }
 

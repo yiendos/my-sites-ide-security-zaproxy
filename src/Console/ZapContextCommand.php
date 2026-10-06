@@ -1,8 +1,7 @@
 <?php
 
-namespace Yiendos\MySitesIde;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Console;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -10,7 +9,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Yiendos\MySitesIde\InteractsWithZapApi;
+use Yiendos\MySitesIde\Security\Zaproxy\Paths;
+use Yiendos\MySitesIde\Security\Zaproxy\InteractsWithZapApi;
 class ZapContextCommand extends Command
 {
     use InteractsWithZapApi;
@@ -48,13 +48,8 @@ class ZapContextCommand extends Command
      */
     public function __invoke(OutputInterface $output, InputInterface $input, SymfonyStyle $io): int
     {
-        // The bootstrap only loads the root .env, so pull in zaproxy/.env here as the
-        // default source for ZAP_TARGET_PASSWORD - safeLoad() + Immutable won't
-        // overwrite whatever the root .env already set, so root still wins on override.
-        Dotenv::createImmutable(__DIR__ . '/../environment/security/zaproxy')->safeLoad();
-
         $target = $input->getArgument('target');
-        $configPath = __DIR__ . "/../environment/security/zaproxy/contexts/{$target}.zap-config.php";
+        $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath) && !$this->writeConfigFromOptions($io, $input, $target, $configPath)) {
             return $this->scaffoldConfig($io, $target, $configPath);
@@ -151,7 +146,7 @@ class ZapContextCommand extends Command
         ]);
 
         $contextFile = "/zap/wrk/{$target}.context";
-        $hostContextFile = __DIR__ . "/../environment/security/zaproxy/reports/{$target}.context";
+        $hostContextFile = Paths::reports("{$target}.context");
 
         $this->zapApi($io, 'context/action/exportContext', [
             'contextName' => $contextName,
@@ -190,7 +185,7 @@ class ZapContextCommand extends Command
             ]);
         }
 
-        $io->success("Exported context to _dev/environment/security/zaproxy/reports/{$target}.context (user: {$config['user']['name']})");
+        $io->success("Exported context to storage/plugins/zaproxy/reports/{$target}.context (user: {$config['user']['name']})");
 
         return Command::SUCCESS;
     }
@@ -284,7 +279,7 @@ class ZapContextCommand extends Command
 
         file_put_contents($configPath, $php);
 
-        $io->success("Generated _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php from command-line options.");
+        $io->success("Generated storage/plugins/zaproxy/contexts/{$target}.zap-config.php from command-line options.");
 
         return true;
     }
@@ -299,10 +294,10 @@ class ZapContextCommand extends Command
      */
     private function scaffoldConfig(SymfonyStyle $io, string $target, string $configPath): int
     {
-        $examplePath = __DIR__ . '/../environment/security/zaproxy/contexts/example.zap-config.php';
+        $examplePath = Paths::package('contexts/example.zap-config.php');
 
         if (!is_file($examplePath)) {
-            $io->error("No config found at _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php, and no example.zap-config.php to scaffold from.");
+            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php, and no example.zap-config.php to scaffold from.");
             return Command::FAILURE;
         }
 
@@ -316,7 +311,7 @@ class ZapContextCommand extends Command
         file_put_contents($configPath, $scaffold);
 
         $io->warning([
-            "No config existed for '{$target}' - scaffolded _dev/environment/security/zaproxy/contexts/{$target}.zap-config.php from the example.",
+            "No config existed for '{$target}' - scaffolded storage/plugins/zaproxy/contexts/{$target}.zap-config.php from the example.",
             "Edit its login/indicator/user details for {$host}, then run this command again.",
         ]);
 

@@ -14,6 +14,7 @@ including ones who haven't used ZAP before.
 
 ## Contents
 
+- [Installation](#installation)
 - [Architecture](#architecture)
 - [First-time setup](#first-time-setup)
 - [Prerequisites](#prerequisites)
@@ -28,6 +29,26 @@ including ones who haven't used ZAP before.
 - [Target-app requirements](#target-app-requirements)
 - [Known gaps](#known-gaps)
 
+## Installation
+
+A [my-sites-ide](https://github.com/yiendos/my-sites-ide) plugin. Add it to the `require` section of the IDE's `composer.local.json`:
+
+```json
+"yiendos/my-sites-ide-security-zaproxy": "@dev"
+```
+
+Then, from the IDE root:
+
+```
+composer update
+php my-sites-ide ide:plugin-env yiendos/my-sites-ide-security-zaproxy   # optional: copy the override points into .env, commented out
+```
+
+Composer's `post-autoload-dump` hook registers the `ide:zap-*` commands and the `zaproxy`
+compose service. The service is not started by `ide:spark` (`autostart: false`); the commands
+run it on demand. Contexts and reports live in the IDE's `storage/plugins/zaproxy/`, outside
+the package, so `composer update` leaves them alone.
+
 ## Architecture
 
 ```
@@ -40,9 +61,9 @@ host (my-sites-ide CLI)
   |- ide:zap-install-manifests --> copies stubs/laravel/*.php.stub into the target app, edits its zap-config
 
 zaproxy container (ghcr.io/zaproxy/zaproxy, pinned tag in docker-compose.yml)
-  - reports/        bind-mounted to /zap/wrk (gitignored output)
-  - scripts/        bind-mounted read-only to /zap/scripts (helpers run inside the container)
-  - zap-home        named volume at /home/zap (addon state, and the ZAP home-dir lock)
+  - storage/plugins/zaproxy/reports/  bind-mounted to /zap/wrk (gitignored output)
+  - scripts/                           bind-mounted read-only to /zap/scripts (helpers run inside the container)
+  - zap-home                           named volume at /home/zap (addon state, and the ZAP home-dir lock)
   - network my-sites-ide, so it reaches target sites by their hostname
 ```
 
@@ -66,14 +87,14 @@ Several things have to be in place before the first scan works, and most of them
 ways that look like a credentials problem. Work through these in order. The examples use
 `local.smart-kitchen.io`; substitute your target's hostname.
 
-1. **Root `.env` values.** Add both to the root `.env` (gitignored), not `zaproxy/.env`:
+1. **Root `.env` values.** Add both to the root `.env` (gitignored), not this plugin's `.env`:
 
    ```
-   ZAP_TARGET_ALIAS=local.smart-kitchen.io
+   IDE_SITE_ALIAS=local.smart-kitchen.io
    ZAP_TARGET_PASSWORD=<demo user's password>
    ```
 
-   `ZAP_TARGET_ALIAS` must be set explicitly. Its default (`default.test`) won't match
+   `IDE_SITE_ALIAS` must be set explicitly. Its default (`default.test`) won't match
    your target, and a value left over from another target (`stockman.test`) fails the
    same way. See [Configuration](#configuration).
 
@@ -108,7 +129,7 @@ ways that look like a credentials problem. Work through these in order. The exam
    A `000` or a `localhost` address means steps 1 to 3 aren't right yet.
 
 7. **Build the context** with flags ([Option A](#option-a-flags-recommended)). This writes
-   `contexts/local.smart-kitchen.io.zap-config.php` and `reports/local.smart-kitchen.io.context`:
+   `storage/plugins/zaproxy/contexts/local.smart-kitchen.io.zap-config.php` and `storage/plugins/zaproxy/reports/local.smart-kitchen.io.context`:
 
    ```
    php my-sites-ide ide:zap-context local.smart-kitchen.io \
@@ -121,7 +142,7 @@ ways that look like a credentials problem. Work through these in order. The exam
    ```
 
    A hostname containing a dot is used as-is; only a bare name like `stockman` gets
-   `.test` appended. If a scan later reports `No context file at reports/<target>.context`,
+   `.test` appended. If a scan later reports `No context file at storage/plugins/zaproxy/reports/<target>.context`,
    this step hasn't been run for that exact target name.
 
 8. **Run the baseline scan** (Phase 1):
@@ -155,7 +176,7 @@ safe to re-run.
 ### Option A: flags (recommended)
 
 Supply the details once on the command line. A complete config is written to
-`contexts/<target>.zap-config.php`, and the context is built in the same run:
+`storage/plugins/zaproxy/contexts/<target>.zap-config.php`, and the context is built in the same run:
 
 ```
 ZAP_TARGET_PASSWORD=<password> php my-sites-ide ide:zap-context <target> \
@@ -176,7 +197,7 @@ ZAP_TARGET_PASSWORD=<password> php my-sites-ide ide:zap-context <target> \
 ### Option B: scaffold and edit
 
 Run `php my-sites-ide ide:zap-context <target>` with no flags. It copies
-`contexts/example.zap-config.php` to `contexts/<target>.zap-config.php` with the
+`contexts/example.zap-config.php` to `storage/plugins/zaproxy/contexts/<target>.zap-config.php` with the
 hostname substituted, then stops. The target is used as the hostname if it contains a dot
 (`local.smart-kitchen.io`); otherwise `.test` is appended (`stockman` becomes
 `stockman.test`). Fill in the login URL, indicator regex, poll URL, scope
@@ -197,8 +218,8 @@ and user, and run the command again.
 
 `seed_urls`, `write_routes` and `livewire_actions` are shell-outs to the target app's own
 artisan commands, so they stay current with its routes (see
-[Route manifests](#route-manifests)). Config files are gitignored
-(`contexts/*.zap-config.php`). `contexts/example.zap-config.php` is the tracked template.
+[Route manifests](#route-manifests)). Config files live under the IDE's gitignored
+(`storage/plugins/zaproxy/contexts/*.zap-config.php`). `contexts/example.zap-config.php` is the tracked template.
 
 ### Route manifests
 
@@ -321,7 +342,7 @@ php my-sites-ide ide:zap-hud <target>
 
 Passing the target prints its write-route and Livewire checklist before the launch
 confirmation, and imports the context exported by `ide:zap-context`
-(`reports/<target>.context`) into the HUD automatically. The import happens a few seconds
+(`storage/plugins/zaproxy/reports/<target>.context`) into the HUD automatically. The import happens a few seconds
 after ZAP finishes starting in the browser, and again if a reloaded tab starts a fresh ZAP
 session. It also removes ZAP's empty Default Context, which otherwise blocks Session
 Properties from saving, and locks the session to the target: every other host is excluded
@@ -338,7 +359,7 @@ that policy in the Active Scan dialog.
 
 To import a context by hand instead, use **File → Import Context** and type
 `/zap/wrk/<target>.context` into File Name. The dialog opens in ZAP's own contexts folder,
-not the `reports/` mount.
+not the `storage/plugins/zaproxy/reports/` mount.
 
 To start from a clean ZAP session, see [Stopping and restarting](#stopping-and-restarting).
 
@@ -439,7 +460,7 @@ php my-sites-ide ide:zap-hud <target>
 
 `ide:zap-prune` lists the saved sessions and asks before deleting them. Add `--dry-run`
 to only list them. If you also want fresh credentials and seed URLs, run
-`ide:zap-context <target>` before `ide:zap-hud`. Leave `contexts/<target>.zap-config.php`
+`ide:zap-context <target>` before `ide:zap-hud`. Leave `storage/plugins/zaproxy/contexts/<target>.zap-config.php`
 in place: it's written by hand and isn't regenerated.
 
 Then open `http://localhost:8080/zap` in one browser profile only. Use a dedicated Chrome
@@ -464,8 +485,8 @@ domain's entry in `chrome://net-internals/#hsts`.
 
 ## Configuration
 
-Defaults live in the tracked `zaproxy/.env` and in `docker-compose.yml`. Overrides go in
-the root `.env`, which is gitignored. The root `env-example` lists the override points.
+Defaults live in this plugin's tracked `.env` and in `docker-compose.yml`. Overrides go in
+the root `.env`, which is gitignored. This plugin's `env-example` lists the override points.
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -474,8 +495,8 @@ the root `.env`, which is gitignored. The root `env-example` lists the override 
 | `ZAP_ASCAN_DOMXSS_STRENGTH` | `LOW` | DOM XSS attack strength. Resolved by scanner name, not id. |
 | `ZAP_ASCAN_DATABASES` | (empty) | Database-specific injection rules to keep, comma-separated: `mysql`, `postgresql`, `oracle`, `mssql`, `hypersonic`, `sqlite`, `mongodb`. The rest are disabled, since their time-based probes can't find anything against another database and are slow. Empty runs them all. The generic SQL Injection rule always runs. Applied by `ide:zap-daemon` and in each HUD session, matched by rule name. |
 | `ZAP_ASCAN_TIMEOUT_SECONDS` | `1800` | How long the CLI waits for an active scan. The scan keeps running server-side regardless. |
-| `ZAP_TARGET_PASSWORD` | (unset) | Password for flag-based context generation. Keep it in the root `.env`, not `zaproxy/.env`. |
-| `ZAP_TARGET_ALIAS` | `default.test` | Network alias nginx registers, so the container can resolve the target. Must be the exact hostname the context targets. Read by `servers/nginx/docker-compose.yml`. |
+| `ZAP_TARGET_PASSWORD` | (unset) | Password for flag-based context generation. Keep it in the root `.env`, not this plugin's `.env`. |
+| `IDE_SITE_ALIAS` | `default.test` | Network alias nginx registers, so the container can resolve the target. Must be the exact hostname the context targets. Read by the IDE's `servers/nginx/docker-compose.yml`. |
 | `ZAP_MEM_LIMIT` | `5g` | Container memory cap. |
 | `ZAP_CPUS` / `ZAP_CPUSET` | `4` / `0,1,2,3` | CPU quota and affinity. Both are needed. See below. |
 
@@ -487,7 +508,7 @@ the root `.env`, which is gitignored. The root `env-example` lists the override 
 - Two cores couldn't keep up with on-the-fly TLS certificate signing during a full scan.
   The result was a backlog, then memory growth, then Webswing's heartbeat watchdog ending
   the session. Four cores is the tested setting.
-- `JAVA_TOOL_OPTIONS=-Xss256k` (in `zaproxy/.env`) caps per-thread stack size. Without it,
+- `JAVA_TOOL_OPTIONS=-Xss256k` (in this plugin's `.env`) caps per-thread stack size. Without it,
   thousands of threads were consuming more memory in stacks than in heap.
 
 **Settings that don't stick if passed on the command line.** `-config key=value` on
@@ -502,8 +523,8 @@ the same command line is silently ignored.
 
 ## Reports and sensitive files
 
-Reports are written to `reports/<target-or-hostname>/report-<timestamp>.html`. The folder
-is created before the scan. Everything under `reports/` is gitignored except `.gitkeep`.
+Reports are written to `storage/plugins/zaproxy/reports/<target-or-hostname>/report-<timestamp>.html`. The folder
+is created before the scan. Everything under `storage/` is gitignored by the IDE.
 
 - The `traditional-html-plus` template includes the captured request and response for each
   finding. It is roughly 60 times the size of the plain template, about 14.6 MB against
@@ -512,7 +533,7 @@ is created before the scan. Everything under `reports/` is gitignored except `.g
   assets. Delete both together. Deleting only the HTML leaves an orphaned asset folder.
 - Captured evidence includes live session cookies. They are encrypted Laravel payloads,
   not plaintext, but they are still real session tokens. Treat reports as sensitive.
-- Exported contexts (`reports/<target>.context`) contain the user's credentials
+- Exported contexts (`storage/plugins/zaproxy/reports/<target>.context`) contain the user's credentials
   base64-encoded, which is not encryption. Decoding them takes one command. Never share
   or commit them.
 - If a report doesn't appear where expected, `docker cp zaproxy:/home/zap/<file> .` pulls
@@ -550,7 +571,7 @@ Context (right-click it in the Sites tree). `ide:zap-hud <target>` removes it fo
 
 **HUD: no target context in the Sites tree.** Each HUD browser session is a fresh ZAP
 session. Launch with `ide:zap-hud <target>` so it's imported, and check
-`reports/<target>.context` exists. If it doesn't, run `ide:zap-context <target>` first.
+`storage/plugins/zaproxy/reports/<target>.context` exists. If it doesn't, run `ide:zap-context <target>` first.
 
 **"Empty reply from server" when calling the API from the host.** Expected. Use the
 `ide:*` commands, which go through `docker compose exec`.
@@ -587,9 +608,9 @@ is wrong. Fix it with the steps below, then rerun the scan.
 **Target not reachable from the container.** The container can only reach the target
 through the nginx network alias. Check three things:
 
-1. `ZAP_TARGET_ALIAS` in the root `.env` is the exact hostname the context targets (for
+1. `IDE_SITE_ALIAS` in the root `.env` is the exact hostname the context targets (for
    `local.smart-kitchen.io`, not `stockman.test` left over from another target). The
-   default in `servers/nginx/docker-compose.yml` applies only when the variable is unset.
+   default in the IDE's `servers/nginx/docker-compose.yml` applies only when the variable is unset.
 2. The target's vhost `server_name` includes that hostname.
 3. The nginx container was recreated after changing the alias
    (`docker compose up -d nginx`). Changing the alias requires recreating the container, not

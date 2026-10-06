@@ -1,6 +1,6 @@
 <?php
 
-namespace Yiendos\MySitesIde\Enums;
+namespace Yiendos\MySitesIde\Security\Zaproxy\Enums;
 
 /**
  * The database engines a target app can run on, as named in
