@@ -91,6 +91,12 @@ class ZapHudCommand extends Command
         // stale value someone forgets they changed.
         $targetAlias = getenv('IDE_SITE_ALIAS') ?: 'default.test';
 
+        // ZAP_TARGET_ALIAS was this setting's name before it moved to core - nginx no longer
+        // reads it, so an .env still using it would silently fall back to default.test
+        if (getenv('ZAP_TARGET_ALIAS') !== false && getenv('IDE_SITE_ALIAS') === false) {
+            $io->warning("ZAP_TARGET_ALIAS in your .env is no longer read - rename it to IDE_SITE_ALIAS, then run 'docker compose up -d nginx'.");
+        }
+
         $this->stopConflictingContainers($io);
 
         $io->note([
