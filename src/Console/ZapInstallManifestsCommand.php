@@ -34,7 +34,7 @@ class ZapInstallManifestsCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-install-manifests')
+            ->setName('security:zap-install-manifests')
             ->setDescription('Copy the security:* route-manifest commands into a target Laravel app, and wire them into its zap-config')
             ->addArgument('target', InputArgument::REQUIRED, 'Config name, matching contexts/<target>.zap-config.php')
             ->addOption('app-path', null, InputOption::VALUE_REQUIRED, "The app's root inside the fpm container (/opt/repos/<repo>/deploy) - only needed if the config has no app_path yet")
@@ -63,7 +63,7 @@ class ZapInstallManifestsCommand extends Command
         $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath)) {
-            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
+            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run security:zap-context {$target} first.");
             return Command::FAILURE;
         }
 

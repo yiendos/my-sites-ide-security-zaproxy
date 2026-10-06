@@ -3,8 +3,8 @@
 Automated and manual dynamic application security testing (DAST) against sites served by
 this dev stack, using OWASP ZAP. Two ways to drive it:
 
-- **CLI** (`ide:zap-*` commands): headless, repeatable, scriptable. Gives breadth.
-- **Browser** (`ide:zap-hud`, the ZAP Desktop UI): interactive. Gives depth, and reaches
+- **CLI** (`security:zap-*` commands): headless, repeatable, scriptable. Gives breadth.
+- **Browser** (`security:zap-hud`, the ZAP Desktop UI): interactive. Gives depth, and reaches
   what automation structurally can't (write-verb endpoints, Livewire actions).
 
 Use both, in the order laid out under [Methodology](#methodology).
@@ -44,7 +44,7 @@ composer update
 php my-sites-ide ide:plugin-env yiendos/my-sites-ide-security-zaproxy   # optional: copy the override points into .env, commented out
 ```
 
-Composer's `post-autoload-dump` hook registers the `ide:zap-*` commands and the `zaproxy`
+Composer's `post-autoload-dump` hook registers the `security:zap-*` commands and the `zaproxy`
 compose service. The service is not started by `ide:spark` (`autostart: false`); the commands
 run it on demand. Contexts and reports live in the IDE's `storage/plugins/zaproxy/`, outside
 the package, so `composer update` leaves them alone.
@@ -53,12 +53,12 @@ the package, so `composer update` leaves them alone.
 
 ```
 host (my-sites-ide CLI)
-  |- ide:zap-scan / ide:zap-context / ide:zap-coverage  --> docker compose exec zaproxy curl :8090/JSON/...
-  |- ide:zap-daemon   --> docker compose run -d --rm zaproxy zap.sh -daemon ...
-  |- ide:zap-hud      --> docker compose run --service-ports zaproxy zap-webswing.sh   (browser UI on :8080)
+  |- security:zap-scan / security:zap-context / security:zap-coverage  --> docker compose exec zaproxy curl :8090/JSON/...
+  |- security:zap-daemon   --> docker compose run -d --rm zaproxy zap.sh -daemon ...
+  |- security:zap-hud      --> docker compose run --service-ports zaproxy zap-webswing.sh   (browser UI on :8080)
   |                       + scripts/hud-watcher.sh in the background, configuring each ZAP session via the API
-  |- ide:zap-hud-fix  --> reads webswing.out inside the container, offers to kill stray ZAP processes
-  |- ide:zap-install-manifests --> copies stubs/laravel/*.php.stub into the target app, edits its zap-config
+  |- security:zap-hud-fix  --> reads webswing.out inside the container, offers to kill stray ZAP processes
+  |- security:zap-install-manifests --> copies stubs/laravel/*.php.stub into the target app, edits its zap-config
 
 zaproxy container (ghcr.io/zaproxy/zaproxy, pinned tag in docker-compose.yml)
   - storage/plugins/zaproxy/reports/  bind-mounted to /zap/wrk (gitignored output)
@@ -132,7 +132,7 @@ ways that look like a credentials problem. Work through these in order. The exam
    `storage/plugins/zaproxy/contexts/local.smart-kitchen.io.zap-config.php` and `storage/plugins/zaproxy/reports/local.smart-kitchen.io.context`:
 
    ```
-   php my-sites-ide ide:zap-context local.smart-kitchen.io \
+   php my-sites-ide security:zap-context local.smart-kitchen.io \
      --site-url=https://local.smart-kitchen.io \
      --login-url=/login \
      --login-data='email={%username%}&password={%password%}&_token={%_token%}' \
@@ -148,7 +148,7 @@ ways that look like a credentials problem. Work through these in order. The exam
 8. **Run the baseline scan** (Phase 1):
 
    ```
-   php my-sites-ide ide:zap-scan https://local.smart-kitchen.io --context=local.smart-kitchen.io --user=demo
+   php my-sites-ide security:zap-scan https://local.smart-kitchen.io --context=local.smart-kitchen.io --user=demo
    ```
 
    `--user` takes the ZAP user's **label** (`demo`), not the login email. Passing
@@ -179,7 +179,7 @@ Supply the details once on the command line. A complete config is written to
 `storage/plugins/zaproxy/contexts/<target>.zap-config.php`, and the context is built in the same run:
 
 ```
-ZAP_TARGET_PASSWORD=<password> php my-sites-ide ide:zap-context <target> \
+ZAP_TARGET_PASSWORD=<password> php my-sites-ide security:zap-context <target> \
   --site-url=https://<target>.test \
   --login-url=/login \
   --login-data='email={%username%}&password={%password%}&_token={%_token%}' \
@@ -196,7 +196,7 @@ ZAP_TARGET_PASSWORD=<password> php my-sites-ide ide:zap-context <target> \
 
 ### Option B: scaffold and edit
 
-Run `php my-sites-ide ide:zap-context <target>` with no flags. It copies
+Run `php my-sites-ide security:zap-context <target>` with no flags. It copies
 `contexts/example.zap-config.php` to `storage/plugins/zaproxy/contexts/<target>.zap-config.php` with the
 hostname substituted, then stops. The target is used as the hostname if it contains a dot
 (`local.smart-kitchen.io`); otherwise `.test` is appended (`stockman` becomes
@@ -207,7 +207,7 @@ and user, and run the command again.
 
 | Key | Purpose |
 |---|---|
-| `app_path` | The target app's root inside the `fpm` container (`/opt/repos/<repo>/deploy`). `ide:zap-coverage` runs `security:coverage-diff` there, and the config's `$artisan` helper generates the three manifests below from it |
+| `app_path` | The target app's root inside the `fpm` container (`/opt/repos/<repo>/deploy`). `security:zap-coverage` runs `security:coverage-diff` there, and the config's `$artisan` helper generates the three manifests below from it |
 | `login` | Form-based login: URL, request body (`{%username%}`, `{%password%}`, and any other name such as `{%_token%}` to scrape a fresh CSRF token before each attempt) |
 | `indicator` | Regex that is present only when logged in (the logout form), plus a poll URL used to re-verify the session |
 | `scope` | Include/exclude regexes for what ZAP may crawl |
@@ -231,10 +231,10 @@ starts from what the app actually has rather than what the spider stumbles on.
 
 | Manifest | Artisan command | What it lists | Used by |
 |---|---|---|---|
-| `seed_urls` | `security:seed-urls` | Every GET page, with `{parameters}` filled in | `ide:zap-scan --context`, which spiders the target plus every seed URL as the scan user |
-| `write_routes` | `security:seed-write-routes` | Every POST/PUT/PATCH/DELETE route, with its method | `ide:zap-hud <target>` (checklist at launch) and `ide:zap-coverage` (covered vs not) |
-| `livewire_actions` | `security:seed-livewire-actions` | Every `wire:click`/`wire:submit` action in a routed Livewire component, with its page and Blade line | `ide:zap-hud <target>` and `ide:zap-coverage`, as a checklist only |
-| (none) | `security:coverage-diff` | Matches the traffic ZAP recorded against the write routes | `ide:zap-coverage`, which passes it the recorded traffic |
+| `seed_urls` | `security:seed-urls` | Every GET page, with `{parameters}` filled in | `security:zap-scan --context`, which spiders the target plus every seed URL as the scan user |
+| `write_routes` | `security:seed-write-routes` | Every POST/PUT/PATCH/DELETE route, with its method | `security:zap-hud <target>` (checklist at launch) and `security:zap-coverage` (covered vs not) |
+| `livewire_actions` | `security:seed-livewire-actions` | Every `wire:click`/`wire:submit` action in a routed Livewire component, with its page and Blade line | `security:zap-hud <target>` and `security:zap-coverage`, as a checklist only |
+| (none) | `security:coverage-diff` | Matches the traffic ZAP recorded against the write routes | `security:zap-coverage`, which passes it the recorded traffic |
 
 All four commands:
 
@@ -256,7 +256,7 @@ component that only appears inside another page's view has no URL, so it's skipp
 wires them into its config:
 
 ```
-php my-sites-ide ide:zap-install-manifests <target>
+php my-sites-ide security:zap-install-manifests <target>
 ```
 
 - It copies the templates from `stubs/laravel/` into the app's `app/Console/Commands/`,
@@ -266,7 +266,7 @@ php my-sites-ide ide:zap-install-manifests <target>
 - It never overwrites a file the app already has, because that copy may have local
   changes. `--force` overwrites.
 - It adds whatever the config is missing: the `$artisan` helper, `app_path` and the three
-  manifest keys. A config written by `ide:zap-context` has none of these, so on the first
+  manifest keys. A config written by `security:zap-context` has none of these, so on the first
   run pass `--app-path=/opt/repos/<repo>/deploy`. Anything already there is left alone,
   and a commented-out key counts as missing.
 - It finishes by running `security:seed-urls` in the `fpm` container and reporting how
@@ -299,7 +299,7 @@ meaningless.
 ### Phase 1: CLI baseline (passive only)
 
 ```
-php my-sites-ide ide:zap-scan https://<target>.test --context=<target> --user=<name>
+php my-sites-ide security:zap-scan https://<target>.test --context=<target> --user=<name>
 ```
 
 Passive checks only: headers, cookies, disclosed information, obvious misconfiguration.
@@ -308,7 +308,7 @@ Takes minutes. Run on every change.
 ### Phase 2: CLI full active scan
 
 ```
-php my-sites-ide ide:zap-scan https://<target>.test --context=<target> --user=<name> --full
+php my-sites-ide security:zap-scan https://<target>.test --context=<target> --user=<name> --full
 ```
 
 Adds the Active Scanner: SQLi, XSS, path traversal, and so on, run against everything the
@@ -337,11 +337,11 @@ actually shows the claimed effect. See [Known false positives](#known-false-posi
 ### Phase 4: browser (HUD), validate the shortlist
 
 ```
-php my-sites-ide ide:zap-hud <target>
+php my-sites-ide security:zap-hud <target>
 ```
 
 Passing the target prints its write-route and Livewire checklist before the launch
-confirmation, and imports the context exported by `ide:zap-context`
+confirmation, and imports the context exported by `security:zap-context`
 (`storage/plugins/zaproxy/reports/<target>.context`) into the HUD automatically. The import happens a few seconds
 after ZAP finishes starting in the browser, and again if a reloaded tab starts a fresh ZAP
 session. It also removes ZAP's empty Default Context, which otherwise blocks Session
@@ -389,7 +389,7 @@ session, and Active Scan can then mutate those messages like any spidered GET.
 The coverage check:
 
 ```
-php my-sites-ide ide:zap-coverage <target>
+php my-sites-ide security:zap-coverage <target>
 ```
 
 It reads every message ZAP recorded this session and reports which manifest routes were
@@ -420,7 +420,7 @@ confirm what was actually covered before trusting the absence of an alert.
 ### Stopping
 
 ```
-php my-sites-ide ide:zap-stop
+php my-sites-ide security:zap-stop
 ```
 
 Stops the HUD and the daemon, whichever are running. Both are started with `--rm`, so
@@ -434,8 +434,8 @@ and keeps the single browser slot taken.
 ### Restarting
 
 ```
-php my-sites-ide ide:zap-stop
-php my-sites-ide ide:zap-hud <target>
+php my-sites-ide security:zap-stop
+php my-sites-ide security:zap-hud <target>
 ```
 
 Every launch starts a fresh ZAP session with the target context imported. Restart:
@@ -445,7 +445,7 @@ Every launch starts a fresh ZAP session with the target context imported. Restar
 - **When switching browser or Chrome profile.** Webswing allows one browser client
   (`maxClients: 1`), tied to the browser that opened `/zap`. Any other browser, profile or
   incognito window is refused until the HUD is restarted.
-- **When the HUD shows "Session ended" in a loop.** Try `ide:zap-hud-fix` first (see
+- **When the HUD shows "Session ended" in a loop.** Try `security:zap-hud-fix` first (see
   [Troubleshooting](#troubleshooting)).
 
 ### Starting from a clean slate
@@ -453,14 +453,14 @@ Every launch starts a fresh ZAP session with the target context imported. Restar
 To start with no history, alerts or saved sessions from earlier runs:
 
 ```
-php my-sites-ide ide:zap-stop
-php my-sites-ide ide:zap-prune --logs
-php my-sites-ide ide:zap-hud <target>
+php my-sites-ide security:zap-stop
+php my-sites-ide security:zap-prune --logs
+php my-sites-ide security:zap-hud <target>
 ```
 
-`ide:zap-prune` lists the saved sessions and asks before deleting them. Add `--dry-run`
+`security:zap-prune` lists the saved sessions and asks before deleting them. Add `--dry-run`
 to only list them. If you also want fresh credentials and seed URLs, run
-`ide:zap-context <target>` before `ide:zap-hud`. Leave `storage/plugins/zaproxy/contexts/<target>.zap-config.php`
+`security:zap-context <target>` before `security:zap-hud`. Leave `storage/plugins/zaproxy/contexts/<target>.zap-config.php`
 in place: it's written by hand and isn't regenerated.
 
 Then open `http://localhost:8080/zap` in one browser profile only. Use a dedicated Chrome
@@ -473,15 +473,15 @@ domain's entry in `chrome://net-internals/#hsts`.
 
 | Command | What it does |
 |---|---|
-| `ide:zap-context <target> [flags]` | Build or rebuild the auth context. Starts the daemon if needed. Scaffolds or writes the config. |
-| `ide:zap-scan <url> [--context=] [--user=] [--full]` | Scan. With `--context`, uses the API-driven authenticated path. Without it, uses the unauthenticated wrapper scripts. |
-| `ide:zap-daemon` | Start the headless daemon if it isn't running, reusing one that is. Used by the two commands above, rarely needed directly. |
-| `ide:zap-hud [<target>]` | Launch the interactive browser UI. Stops a conflicting daemon or HUD first. Optional target prints the checklist and auto-imports its context. |
-| `ide:zap-hud-fix` | Diagnose a stuck "Session ended" loop. Shows the lock error and the PIDs it finds, and asks before killing anything. |
-| `ide:zap-prune [--keep=N] [--older-than=DAYS] [--logs] [--dry-run]` | Reclaim `zap-home` volume space. Lists every saved session (both `sessions/`, auto-created per HUD session, and `session/`, saved by name) with size and age, then deletes them after confirmation. Never deletes the session ZAP has open. `--logs` also removes rotated `zap.log.N` files. A 75k-request scan's session is about 2 GB. |
-| `ide:zap-coverage <target>` | Diff recorded traffic against `write_routes`. Print the `livewire_actions` checklist. |
-| `ide:zap-install-manifests <target> [--app-path=] [--user=] [--base-url=] [--force]` | Copy the `security:*` manifest commands into a Laravel target and add the manifest keys to its config. See [Route manifests](#route-manifests). |
-| `ide:zap-stop` | Stop the HUD and daemon containers, ending the current ZAP session. Required after a HUD session, and the way to free Webswing's single browser slot ("Maximum number of clients reached"). Both are `--rm`, so stopping also removes them. |
+| `security:zap-context <target> [flags]` | Build or rebuild the auth context. Starts the daemon if needed. Scaffolds or writes the config. |
+| `security:zap-scan <url> [--context=] [--user=] [--full]` | Scan. With `--context`, uses the API-driven authenticated path. Without it, uses the unauthenticated wrapper scripts. |
+| `security:zap-daemon` | Start the headless daemon if it isn't running, reusing one that is. Used by the two commands above, rarely needed directly. |
+| `security:zap-hud [<target>]` | Launch the interactive browser UI. Stops a conflicting daemon or HUD first. Optional target prints the checklist and auto-imports its context. |
+| `security:zap-hud-fix` | Diagnose a stuck "Session ended" loop. Shows the lock error and the PIDs it finds, and asks before killing anything. |
+| `security:zap-prune [--keep=N] [--older-than=DAYS] [--logs] [--dry-run]` | Reclaim `zap-home` volume space. Lists every saved session (both `sessions/`, auto-created per HUD session, and `session/`, saved by name) with size and age, then deletes them after confirmation. Never deletes the session ZAP has open. `--logs` also removes rotated `zap.log.N` files. A 75k-request scan's session is about 2 GB. |
+| `security:zap-coverage <target>` | Diff recorded traffic against `write_routes`. Print the `livewire_actions` checklist. |
+| `security:zap-install-manifests <target> [--app-path=] [--user=] [--base-url=] [--force]` | Copy the `security:*` manifest commands into a Laravel target and add the manifest keys to its config. See [Route manifests](#route-manifests). |
+| `security:zap-stop` | Stop the HUD and daemon containers, ending the current ZAP session. Required after a HUD session, and the way to free Webswing's single browser slot ("Maximum number of clients reached"). Both are `--rm`, so stopping also removes them. |
 
 ## Configuration
 
@@ -493,7 +493,7 @@ the root `.env`, which is gitignored. This plugin's `env-example` lists the over
 | `ZAP_ASCAN_THREADS_PER_HOST` | `2` | Active Scan threads per host. Applied through the API, then read back to confirm. |
 | `ZAP_ASCAN_DELAY_MS` | `0` | Delay between Active Scan requests. |
 | `ZAP_ASCAN_DOMXSS_STRENGTH` | `LOW` | DOM XSS attack strength. Resolved by scanner name, not id. |
-| `ZAP_ASCAN_DATABASES` | (empty) | Database-specific injection rules to keep, comma-separated: `mysql`, `postgresql`, `oracle`, `mssql`, `hypersonic`, `sqlite`, `mongodb`. The rest are disabled, since their time-based probes can't find anything against another database and are slow. Empty runs them all. The generic SQL Injection rule always runs. Applied by `ide:zap-daemon` and in each HUD session, matched by rule name. |
+| `ZAP_ASCAN_DATABASES` | (empty) | Database-specific injection rules to keep, comma-separated: `mysql`, `postgresql`, `oracle`, `mssql`, `hypersonic`, `sqlite`, `mongodb`. The rest are disabled, since their time-based probes can't find anything against another database and are slow. Empty runs them all. The generic SQL Injection rule always runs. Applied by `security:zap-daemon` and in each HUD session, matched by rule name. |
 | `ZAP_ASCAN_TIMEOUT_SECONDS` | `1800` | How long the CLI waits for an active scan. The scan keeps running server-side regardless. |
 | `ZAP_TARGET_PASSWORD` | (unset) | Password for flag-based context generation. Keep it in the root `.env`, not this plugin's `.env`. |
 | `IDE_SITE_ALIAS` | `default.test` | Network alias nginx registers, so the container can resolve the target. Must be the exact hostname the context targets. Read by the IDE's `servers/nginx/docker-compose.yml`. |
@@ -513,10 +513,10 @@ the root `.env`, which is gitignored. This plugin's `env-example` lists the over
 
 **Settings that don't stick if passed on the command line.** `-config key=value` on
 `zap.sh` is unreliable for anything an extension owns, such as Active Scan and Insights.
-Core options like `api.disablekey` are fine. For extension settings, `ide:zap-daemon` sets
+Core options like `api.disablekey` are fine. For extension settings, `security:zap-daemon` sets
 the value through the API after the daemon is up, then reads it back.
 
-**Addons.** `ide:zap-daemon` uninstalls the Insights addon before starting the daemon.
+**Addons.** `security:zap-daemon` uninstalls the Insights addon before starting the daemon.
 Insights crashed under sustained load. The uninstall has to happen in a separate pass
 against the persistent `zap-home` volume. Passing `-addonuninstall` alongside `-daemon` on
 the same command line is silently ignored.
@@ -542,42 +542,42 @@ is created before the scan. Everything under `storage/` is gitignored by the IDE
 ## Troubleshooting
 
 **The HUD shows "Session ended" → "New session" in a loop.** Three different causes
-produce the same symptom. Run `php my-sites-ide ide:zap-hud-fix` first. It reads the real
+produce the same symptom. Run `php my-sites-ide security:zap-hud-fix` first. It reads the real
 log and identifies which one applies.
 
-1. **Daemon and HUD both running.** They share the `zap-home` lock. `ide:zap-hud` stops
+1. **Daemon and HUD both running.** They share the `zap-home` lock. `security:zap-hud` stops
    a running daemon before it launches, so this only happens if you start the daemon
    while the HUD is open.
-2. **Two HUD sessions.** A second `ide:zap-hud` fails with "port is already allocated",
-   or a stale container holds the lock. `ide:zap-hud` stops a running HUD container
+2. **Two HUD sessions.** A second `security:zap-hud` fails with "port is already allocated",
+   or a stale container holds the lock. `security:zap-hud` stops a running HUD container
    before launching.
 3. **A stray ZAP process from an old browser tab.** Webswing sessions never time out, so
    closing a tab or switching Chrome profiles can leave a ZAP process holding the lock.
    The container still looks healthy to Docker, so nothing catches this automatically.
-   `ide:zap-hud-fix` finds it and offers to kill it.
+   `security:zap-hud-fix` finds it and offers to kill it.
 
 **HUD: "Too many connections" / "Maximum number of clients reached [1]" in
 `webswing.out`.** The image's `webswing.config` sets `maxClients: 1`, and sessions are tied
 to the browser that opened them (`CONTINUE_FOR_BROWSER`). Opening `/zap` from another
 Chrome profile, browser or incognito window while a session is running counts as a second
-client. Go back to the original browser, or run `ide:zap-stop` and relaunch with
-`ide:zap-hud`. Don't raise `maxClients`: each client starts its own ZAP JVM, which doubles
+client. Go back to the original browser, or run `security:zap-stop` and relaunch with
+`security:zap-hud`. Don't raise `maxClients`: each client starts its own ZAP JVM, which doubles
 memory, and both share the `zap-home` lock, which brings back the "Session ended" loop.
 
 **HUD: "Failed to save the options: The URL to Poll must be specified for context Default
 Context".** ZAP's built-in Default Context starts with a poll-URL verification strategy and
 no poll URL, and Session Properties validates every context on save. Delete Default
-Context (right-click it in the Sites tree). `ide:zap-hud <target>` removes it for you.
+Context (right-click it in the Sites tree). `security:zap-hud <target>` removes it for you.
 
 **HUD: no target context in the Sites tree.** Each HUD browser session is a fresh ZAP
-session. Launch with `ide:zap-hud <target>` so it's imported, and check
-`storage/plugins/zaproxy/reports/<target>.context` exists. If it doesn't, run `ide:zap-context <target>` first.
+session. Launch with `security:zap-hud <target>` so it's imported, and check
+`storage/plugins/zaproxy/reports/<target>.context` exists. If it doesn't, run `security:zap-context <target>` first.
 
 **"Empty reply from server" when calling the API from the host.** Expected. Use the
-`ide:*` commands, which go through `docker compose exec`.
+`security:zap-*` commands, which go through `docker compose exec`.
 
 **`Poll URL is not set` / authentication failures in the log.** A fresh context defaults
-to a poll-based check with no poll URL. Re-run `ide:zap-context` with `--poll-url`. A
+to a poll-based check with no poll URL. Re-run `security:zap-context` with `--poll-url`. A
 context that was never round-tripped through XML import has no `<pollurl>` element at all,
 which the rebuild handles.
 
@@ -672,8 +672,8 @@ A target needs:
   routed directly. A component embedded only in another page's view has no URL to visit.
 - **Rate-limit overrides are manual.** Relaxing the limits during a scan is a manual `.env`
   edit.
-- **Config generation covers only the auth fields.** `ide:zap-context` doesn't add the
-  manifests; run `ide:zap-install-manifests` afterwards.
+- **Config generation covers only the auth fields.** `security:zap-context` doesn't add the
+  manifests; run `security:zap-install-manifests` afterwards.
 - **Auth-form generation is not automated.** Deriving the login URL and indicator from the
   target's own routes is possible but not built. Credentials should stay a deliberate
   manual step.

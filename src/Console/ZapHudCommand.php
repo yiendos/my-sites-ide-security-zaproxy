@@ -30,7 +30,7 @@ class ZapHudCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-hud')
+            ->setName('security:zap-hud')
             ->setDescription('Launch the OWASP ZAP Desktop UI (webswing) in your browser, for interactive login and scope selection')
             ->addArgument('target', InputArgument::OPTIONAL, 'Config name, matching contexts/<target>.zap-config.php - prints its write_routes/livewire_actions manual-verification checklist before launching')
         ;
@@ -125,14 +125,14 @@ class ZapHudCommand extends Command
      * Two distinct ways a stale container blocks a fresh HUD launch, both
      * confirmed live:
      *
-     * 1. ide:zap-daemon's container shares the zap-home volume (added to
+     * 1. security:zap-daemon's container shares the zap-home volume (added to
      *    persist Insights-addon-uninstall state across --rm daemon restarts)
      *    - meaning it also shares ZAP's own home-directory lock file with the
      *    HUD, and two ZAP processes can never hold that at once. Running both
      *    concurrently was always going to fight over the same live ZAP
      *    session anyway, so stopping the daemon here isn't a workaround -
      *    it's the correct outcome either way.
-     * 2. A second `ide:zap-hud` while one's already running fails outright
+     * 2. A second `security:zap-hud` while one's already running fails outright
      *    with "port is already allocated" (--service-ports binds the same
      *    host ports every time) - a much more opaque error than explaining
      *    up front that only one HUD session can run at a time.
@@ -146,7 +146,7 @@ class ZapHudCommand extends Command
         $daemonRunning = trim((string) shell_exec('docker ps -q --filter name=^zap-daemon$'));
 
         if ($daemonRunning !== '') {
-            $io->note("Stopping ide:zap-daemon's container first - it and the HUD share the same ZAP home directory, so both can't run at once.");
+            $io->note("Stopping security:zap-daemon's container first - it and the HUD share the same ZAP home directory, so both can't run at once.");
             shell_exec('docker stop zap-daemon 2>&1');
         }
 
@@ -166,7 +166,7 @@ class ZapHudCommand extends Command
     }
 
     /**
-     * The context exported by ide:zap-context - its name comes from the config's
+     * The context exported by security:zap-context - its name comes from the config's
      * `target` key (the hostname), which needn't match the command argument.
      *
      * @return array{name: string, file: string, proxy_exclude: string}|null
@@ -176,7 +176,7 @@ class ZapHudCommand extends Command
         $hostContextFile = Paths::reports("{$target}.context");
 
         if (!is_file($hostContextFile)) {
-            $io->warning("No exported context at storage/plugins/zaproxy/reports/{$target}.context - run `ide:zap-context {$target}` first. Launching without it.");
+            $io->warning("No exported context at storage/plugins/zaproxy/reports/{$target}.context - run `security:zap-context {$target}` first. Launching without it.");
             return null;
         }
 
@@ -214,7 +214,7 @@ class ZapHudCommand extends Command
      * history at all (no crawlable body, no route to enumerate) - printed
      * here, unconditionally and un-diffed, since this is the moment someone
      * is actually about to sit down and drive the browser, not a separate
-     * command they have to remember exists. ide:zap-coverage remains the
+     * command they have to remember exists. security:zap-coverage remains the
      * place to check afterwards what was actually recorded.
      */
     private function printChecklist(SymfonyStyle $io, string $target, array $config): void

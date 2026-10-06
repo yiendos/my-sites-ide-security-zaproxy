@@ -26,7 +26,7 @@ class ZapPruneCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-prune')
+            ->setName('security:zap-prune')
             ->setDescription('Reclaim zap-home volume space by deleting old ZAP sessions (never the one in use)')
             ->addOption('keep', null, InputOption::VALUE_REQUIRED, 'Keep this many of the newest sessions', '0')
             ->addOption('older-than', null, InputOption::VALUE_REQUIRED, 'Only delete sessions last written more than this many days ago')

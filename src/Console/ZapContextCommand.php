@@ -23,7 +23,7 @@ class ZapContextCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-context')
+            ->setName('security:zap-context')
             ->setDescription('Build (or rebuild) a ZAP authenticated-scan context from contexts/<target>.zap-config.php')
             ->addArgument('target', InputArgument::REQUIRED, 'Config name, matching contexts/<target>.zap-config.php')
             ->addOption('site-url', null, InputOption::VALUE_REQUIRED, 'Base URL, e.g. https://stockman.test - resolves relative --login-url/--poll-url/--logout-url and derives scope. Only used when no config exists yet for this target.')
@@ -62,10 +62,10 @@ class ZapContextCommand extends Command
         // namespace - it silently drops connections that don't present as true
         // loopback, which a host->container port-forward does not on Docker
         // Desktop for Mac. So every call goes via `docker compose exec`, not a
-        // direct HTTP request - ide:zap-daemon ensures something's actually
+        // direct HTTP request - security:zap-daemon ensures something's actually
         // running to exec into, starting a headless one if needed (a full
-        // ide:zap-hud session works fine too, if one's already open).
-        $daemonExit = $this->getApplication()->find('ide:zap-daemon')->run(new ArrayInput([]), $output);
+        // security:zap-hud session works fine too, if one's already open).
+        $daemonExit = $this->getApplication()->find('security:zap-daemon')->run(new ArrayInput([]), $output);
 
         if ($daemonExit !== Command::SUCCESS) {
             $io->error('Could not reach a ZAP daemon.');
@@ -79,7 +79,7 @@ class ZapContextCommand extends Command
         $contextId = $created['contextId'] ?? null;
 
         if ($contextId === null) {
-            $io->error('Failed to create ZAP context - is `ide:zap-hud` running?');
+            $io->error('Failed to create ZAP context - is `security:zap-hud` running?');
             return Command::FAILURE;
         }
 

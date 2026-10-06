@@ -17,7 +17,7 @@ class ZapHudFixCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-hud-fix')
+            ->setName('security:zap-hud-fix')
             ->setDescription('Diagnose and fix a HUD session stuck in a browser "Session ended" / "New session" loop')
         ;
     }
@@ -46,7 +46,7 @@ class ZapHudFixCommand extends Command
         $container = trim((string) shell_exec('docker ps -q --filter name=zaproxy-run'));
 
         if ($container === '') {
-            $io->writeln('No HUD (webswing) container is currently running - nothing to fix. Start one with `ide:zap-hud`.');
+            $io->writeln('No HUD (webswing) container is currently running - nothing to fix. Start one with `security:zap-hud`.');
             return Command::SUCCESS;
         }
 
@@ -90,7 +90,7 @@ class ZapHudFixCommand extends Command
         $pidList = implode(' ', array_column($strayPids, 'pid'));
         shell_exec("docker exec {$container} kill {$pidList} 2>&1");
 
-        $io->success('Killed. Refresh the HUD in your browser and it should start a fresh session (you\'ll need to re-run ide:zap-context afterward - a fresh ZAP process has no context loaded).');
+        $io->success('Killed. Refresh the HUD in your browser and it should start a fresh session (you\'ll need to re-run security:zap-context afterward - a fresh ZAP process has no context loaded).');
 
         return Command::SUCCESS;
     }

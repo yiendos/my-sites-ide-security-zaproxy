@@ -5,11 +5,11 @@ services:
             # User data lives in the IDE's storage/, outside this package - composer update
             # replaces the package directory, and would take the reports with it
             - '${IDE_ROOT}/storage/plugins/zaproxy/reports:/zap/wrk'
-            # Helper scripts run inside the container (e.g. hud-watcher.sh, started by ide:zap-hud)
+            # Helper scripts run inside the container (e.g. hud-watcher.sh, started by security:zap-hud)
             - './scripts:/zap/scripts:ro'
             # Persists addon-management state (not scan data - core/action/newSession
             # resets that regardless) across otherwise-stateless --rm container runs.
-            # Needed so an addon uninstall (see ide:zap-daemon) actually sticks before
+            # Needed so an addon uninstall (see security:zap-daemon) actually sticks before
             # a later -daemon run initializes extensions, rather than being redone
             # from the image's bundled plugin dir on every fresh container.
             - 'zap-home:/home/zap'
@@ -26,10 +26,10 @@ services:
             - my-sites-ide
 
     # not started by `ide:spark` (autostart: false in composer.json)
-    # invoked on demand via `php my-sites-ide ide:zap-scan <target>`
-    # or `php my-sites-ide ide:zap-hud` for the browser-based Desktop UI
+    # invoked on demand via `php my-sites-ide security:zap-scan <target>`
+    # or `php my-sites-ide security:zap-hud` for the browser-based Desktop UI
     # ports are only published when zap-hud runs `docker compose run --service-ports`
-    # ide:zap-hud - further the pid / service is only ran when you visit the localhost:8080/zap
+    # security:zap-hud - further the pid / service is only ran when you visit the localhost:8080/zap
 
 volumes:
     zap-home:

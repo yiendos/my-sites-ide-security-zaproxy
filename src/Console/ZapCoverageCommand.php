@@ -22,7 +22,7 @@ class ZapCoverageCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-coverage')
+            ->setName('security:zap-coverage')
             ->setDescription('Diff a target\'s write_routes manifest against what the current ZAP session actually recorded, and list any livewire_actions requiring manual verification - e.g. after a Phase 5 HUD walkthrough')
             ->addArgument('target', InputArgument::REQUIRED, 'Config name, matching contexts/<target>.zap-config.php')
         ;
@@ -40,7 +40,7 @@ class ZapCoverageCommand extends Command
         $configPath = Paths::contexts("{$target}.zap-config.php");
 
         if (!is_file($configPath)) {
-            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run ide:zap-context {$target} first.");
+            $io->error("No config found at storage/plugins/zaproxy/contexts/{$target}.zap-config.php - run security:zap-context {$target} first.");
             return Command::FAILURE;
         }
 
@@ -52,7 +52,7 @@ class ZapCoverageCommand extends Command
             return Command::FAILURE;
         }
 
-        $daemonExit = $this->getApplication()->find('ide:zap-daemon')->run(new ArrayInput([]), $output);
+        $daemonExit = $this->getApplication()->find('security:zap-daemon')->run(new ArrayInput([]), $output);
 
         if ($daemonExit !== Command::SUCCESS) {
             $io->error('Could not reach a ZAP daemon.');

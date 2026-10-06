@@ -1,15 +1,15 @@
 <?php
 
-// Running `php my-sites-ide ide:zap-context <target>` scaffolds a copy of
+// Running `php my-sites-ide security:zap-context <target>` scaffolds a copy of
 // this file to <target>.zap-config.php (gitignored) automatically if one
 // doesn't exist yet - edit the scaffolded copy's placeholder values, then
 // re-run the same command. It starts a ZAP daemon itself if needed, rebuilds
 // the named context from scratch each time (safe to re-run after editing),
 // and exports it to reports/<target>.context, ready for
-// `ide:zap-scan <url> --context=<target> --user=<name>`.
+// `security:zap-scan <url> --context=<target> --user=<name>`.
 
 // The target app's root inside the fpm container (/opt/repos/<repo>/deploy).
-// ide:zap-coverage runs security:coverage-diff there, and $artisan below
+// security:zap-coverage runs security:coverage-diff there, and $artisan below
 // generates the seed_urls/write_routes/livewire_actions manifests from it.
 $appPath = '/opt/repos/example/deploy';
 
@@ -44,7 +44,7 @@ return [
         // otherwise trigger repeated re-authentication and trip a login throttle.
         'logged_in' => 'action="https://example\.test/logout"',
         // 'logged_out' => '',
-        // A URL ide:zap-context polls (checking the indicator above) to verify
+        // A URL security:zap-context polls (checking the indicator above) to verify
         // the session is still alive, cached for 60s so it doesn't re-check on
         // every request. Required - without one, ZAP's own default verification
         // strategy crashes every auth check, and there's no other way to detect
@@ -100,7 +100,7 @@ return [
     // no body, so seed_urls can never reach a write-only route. This list
     // isn't scanned automatically; it's the checklist for the browser-based
     // write-verb walkthrough (see zaproxy/README.md Phase 5) and the input
-    // to `ide:zap-coverage` once built. Generate the same way as seed_urls -
+    // to `security:zap-coverage` once built. Generate the same way as seed_urls -
     // from the target app's own route table, not hand-maintained.
     // 'write_routes' => $artisan('security:seed-write-routes'),
     // or by hand:
@@ -114,7 +114,7 @@ return [
     // component action through one shared endpoint, with the method name
     // inside the request payload rather than as a route. No route table
     // enumeration, however extended, can ever see these - not scanned or
-    // diffed automatically, just surfaced by `ide:zap-coverage` as a manual-
+    // diffed automatically, just surfaced by `security:zap-coverage` as a manual-
     // verification checklist (page URL + component/method it's attached to).
     // `security:seed-livewire-actions` is a working generator: it walks routes
     // whose action is a component class, resolves each component's default

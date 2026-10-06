@@ -17,7 +17,7 @@ class ZapStopCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-stop')
+            ->setName('security:zap-stop')
             ->setDescription('Stop every running ZAP container (HUD and daemon), ending the current ZAP session')
         ;
     }
@@ -58,7 +58,7 @@ class ZapStopCommand extends Command
             shell_exec('docker stop ' . preg_replace('/\s+/', ' ', $ids) . ' 2>&1');
         }
 
-        $io->success('ZAP stopped. The next ide:zap-hud or ide:zap-daemon starts with a fresh session.');
+        $io->success('ZAP stopped. The next security:zap-hud or security:zap-daemon starts with a fresh session.');
 
         return Command::SUCCESS;
     }
