@@ -1,6 +1,6 @@
 #!/bin/sh
 # Runs inside the HUD container alongside zap-webswing.sh (started by
-# `ide:zap-hud`, mounted read-only at /zap/scripts), configuring every ZAP
+# `security:zap-hud`, mounted read-only at /zap/scripts), configuring every ZAP
 # session over the API as it comes up.
 #
 # Webswing only starts ZAP once a browser opens /zap, and starts a fresh ZAP
@@ -9,7 +9,7 @@
 #
 # Active-scan limits, applied to any session whose thread count doesn't match
 # (i.e. a fresh one): `-config ascan.threadPerHost` in ZAP_WEBSWING_OPTS
-# doesn't stick (an extension-owned setting, same as in ide:zap-daemon), and
+# doesn't stick (an extension-owned setting, same as in security:zap-daemon), and
 # a HUD scan at ZAP's default 8 threads ran 8 headless Firefoxes for the DOM
 # XSS rule and got the JVM OOM-killed. Also enables only the database-specific
 # rules for ZAP_ASCAN_DATABASES. Rules are resolved by name, with jq (shipped

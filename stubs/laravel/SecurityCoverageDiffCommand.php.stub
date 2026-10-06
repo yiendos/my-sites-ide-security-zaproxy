@@ -25,7 +25,7 @@ class SecurityCoverageDiffCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Diff recorded {method, url} traffic (from a ZAP session, via ide:zap-coverage) against the write-route manifest from security:seed-write-routes, to show which write endpoints were actually exercised';
+    protected $description = 'Diff recorded {method, url} traffic (from a ZAP session, via security:zap-coverage) against the write-route manifest from security:seed-write-routes, to show which write endpoints were actually exercised';
 
     /**
      * Execute the console command.

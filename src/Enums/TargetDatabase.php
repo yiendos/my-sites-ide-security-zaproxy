@@ -6,7 +6,7 @@ namespace Yiendos\MySitesIde\Security\Zaproxy\Enums;
  * The database engines a target app can run on, as named in
  * ZAP_ASCAN_DATABASES, each mapped to its database-specific Active Scan
  * rules. Matched by rule name, not pinned IDs - same reasoning as the DOM
- * XSS lookup in ide:zap-daemon. The generic "SQL Injection" rule isn't
+ * XSS lookup in security:zap-daemon. The generic "SQL Injection" rule isn't
  * listed, so it always runs.
  */
 enum TargetDatabase: string

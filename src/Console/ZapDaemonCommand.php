@@ -20,7 +20,7 @@ class ZapDaemonCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-daemon')
+            ->setName('security:zap-daemon')
             ->setDescription('Ensure a ZAP daemon is running and its API is reachable, starting a headless one if needed')
         ;
     }
@@ -63,11 +63,11 @@ class ZapDaemonCommand extends Command
         $io->writeln('Ensuring the buggy Insights addon stays uninstalled...');
         shell_exec('docker compose run --rm zaproxy zap.sh -addonuninstall insights -cmd 2>&1');
 
-        // -d backgrounds this at the Docker level (unlike ide:zap-hud, which
+        // -d backgrounds this at the Docker level (unlike security:zap-hud, which
         // uses passthru() to stream the interactive Desktop UI in the
         // foreground) - no shell job control or output redirection needed
         // here since nobody's watching this one interactively. No webswing/UI
-        // overhead either - ide:zap-context only ever needs the bare API.
+        // overhead either - security:zap-context only ever needs the bare API.
         $io->writeln('Starting a headless ZAP daemon...');
         shell_exec('docker compose run -d --rm --name zap-daemon zaproxy zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true 2>&1');
 
@@ -87,7 +87,7 @@ class ZapDaemonCommand extends Command
         // A real active scan OOM-killed this daemon (exitCode 137, confirmed
         // via `docker events`) under genuine sustained load - the exact
         // thread-explosion class of crash originally diagnosed and fixed for
-        // ide:zap-hud's webswing flow via ascan.threadPerHost/delayInMs. That
+        // security:zap-hud's webswing flow via ascan.threadPerHost/delayInMs. That
         // equivalent setting never got carried over to this daemon.
         //
         // Passing it as `-config ascan.threadPerHost=N` on this same command

@@ -24,11 +24,11 @@ class ZapScanCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setName('ide:zap-scan')
+            ->setName('security:zap-scan')
             ->setDescription('Run an OWASP ZAP scan against a local site')
             ->addArgument('target', InputArgument::REQUIRED, 'The hostname or URL to scan, e.g. https://nginx')
             ->addOption('full', null, InputOption::VALUE_NONE, 'Run a full active scan instead of a passive baseline scan')
-            ->addOption('context', null, InputOption::VALUE_REQUIRED, 'Name matching a context exported by ide:zap-context (reports/<context>.context), for an authenticated scan')
+            ->addOption('context', null, InputOption::VALUE_REQUIRED, 'Name matching a context exported by security:zap-context (reports/<context>.context), for an authenticated scan')
             ->addOption('user', null, InputOption::VALUE_REQUIRED, 'ZAP user name (as set in the context) to authenticate as - requires --context')
         ;
     }
@@ -97,7 +97,7 @@ class ZapScanCommand extends Command
 
     /**
      * The authenticated path - drives ZAP directly via its API against the
-     * reused ide:zap-daemon session, rather than the wrapper scripts (which
+     * reused security:zap-daemon session, rather than the wrapper scripts (which
      * boot a fresh separate ZAP instance per run and only accept one `-t`,
      * so seed_urls could never reach them). Spiders the target plus every
      * seed_urls entry from the site's own <context>.zap-config.php, so pages
@@ -117,11 +117,11 @@ class ZapScanCommand extends Command
         $hostContextFile = Paths::reports("{$contextFile}");
 
         if (!is_file($hostContextFile)) {
-            $io->error("No context file at reports/{$contextFile} - run `ide:zap-context {$context}` first");
+            $io->error("No context file at reports/{$contextFile} - run `security:zap-context {$context}` first");
             return Command::FAILURE;
         }
 
-        $daemonExit = $this->getApplication()->find('ide:zap-daemon')->run(new ArrayInput([]), $output);
+        $daemonExit = $this->getApplication()->find('security:zap-daemon')->run(new ArrayInput([]), $output);
 
         if ($daemonExit !== Command::SUCCESS) {
             $io->error('Could not reach a ZAP daemon.');
@@ -132,7 +132,7 @@ class ZapScanCommand extends Command
         $seedUrls = is_file($configPath) ? ((require $configPath)['seed_urls'] ?? []) : [];
         $seeds = array_values(array_unique(array_merge([$target], $seedUrls)));
 
-        // A fresh session (rather than reusing whatever ide:zap-context or a
+        // A fresh session (rather than reusing whatever security:zap-context or a
         // previous scan left behind) means contextId/userId are only ever
         // known by re-importing and re-querying them here, not assumed.
         $this->zapApi($io, 'core/action/newSession', ['name' => '', 'overwrite' => 'true']);
