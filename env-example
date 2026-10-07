@@ -37,8 +37,8 @@
 #ZAP_CPUSET=0,1,2,3
 
 
-# the hostname ZAP reaches the target site on - a core my-sites-ide setting (the nginx
+# the hostname ZAP reaches the target site on - an nginx plugin setting (its
 # network alias, default default.test), listed here because security:zap-hud depends on it.
 # Set it to the exact hostname you're scanning (it must be in that site's nginx vhost
-# server_name), then `docker compose up -d nginx` - the alias is fixed at container creation
+# server_name), then `php my-sites-ide servers:nginx-start` - the alias is fixed at container creation
 #IDE_SITE_ALIAS=default.test

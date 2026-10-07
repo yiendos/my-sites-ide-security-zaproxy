@@ -86,7 +86,7 @@ class ZapHudCommand extends Command
         $command .= " zaproxy sh -c " . escapeshellarg('sh ' . self::HUD_WATCHER . ' & exec zap-webswing.sh');
 
         // IDE_SITE_ALIAS is baked into the server's network alias at container-creation time
-        // (Compose substitution, see the IDE's servers/nginx/docker-compose.yml) - not something
+        // (Compose substitution, see the nginx plugin's docker-compose.yml) - not something
         // this command can change at runtime, so surface it here rather than let it be a silent
         // stale value someone forgets they changed.
         $targetAlias = getenv('IDE_SITE_ALIAS') ?: 'default.test';
@@ -94,14 +94,14 @@ class ZapHudCommand extends Command
         // ZAP_TARGET_ALIAS was this setting's name before it moved to core - nginx no longer
         // reads it, so an .env still using it would silently fall back to default.test
         if (getenv('ZAP_TARGET_ALIAS') !== false && getenv('IDE_SITE_ALIAS') === false) {
-            $io->warning("ZAP_TARGET_ALIAS in your .env is no longer read - rename it to IDE_SITE_ALIAS, then run 'docker compose up -d nginx'.");
+            $io->warning("ZAP_TARGET_ALIAS in your .env is no longer read - rename it to IDE_SITE_ALIAS, then run 'php my-sites-ide servers:nginx-start'.");
         }
 
         $this->stopConflictingContainers($io);
 
         $io->note([
             "We are going to start ZAP HUD and expect a network connection to target: $targetAlias",
-            "(this is configured via IDE_SITE_ALIAS in the root .env - requires 'docker compose up -d nginx' after changing it)",
+            "(this is configured via IDE_SITE_ALIAS in the root .env - requires 'php my-sites-ide servers:nginx-start' after changing it)",
         ]);
 
         if (!$io->confirm('Do you wish to continue?', true)) {

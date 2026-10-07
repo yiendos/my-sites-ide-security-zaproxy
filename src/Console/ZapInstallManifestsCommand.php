@@ -104,7 +104,7 @@ class ZapInstallManifestsCommand extends Command
 
     /**
      * Host path for a path inside the fpm container - Repos/ is mounted at
-     * /opt/repos (see servers/nginx/docker-compose.yml)
+     * /opt/repos (see the IDE's preprocessors/fpm/docker-compose.yml)
      */
     private function hostPath(string $containerPath): ?string
     {
