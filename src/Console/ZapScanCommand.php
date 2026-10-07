@@ -136,7 +136,7 @@ class ZapScanCommand extends Command
         // previous scan left behind) means contextId/userId are only ever
         // known by re-importing and re-querying them here, not assumed.
         $this->zapApi($io, 'core/action/newSession', ['name' => '', 'overwrite' => 'true']);
-        $imported = $this->zapApi($io, 'context/action/importContext', ['contextFile' => "/zap/wrk/{$contextFile}"]);
+        $imported = $this->zapApi($io, 'context/action/importContext', ['contextFile' => Paths::container($contextFile)]);
         $contextId = $imported['contextId'] ?? null;
 
         if ($contextId === null) {
@@ -235,7 +235,7 @@ class ZapScanCommand extends Command
             // are genuinely present. Real cost: ~60x larger files (14.6MB
             // vs ~240KB for the same 1030-alert session, tested directly).
             'template' => 'traditional-html-plus',
-            'reportDir' => "/zap/wrk/{$siteName}",
+            'reportDir' => Paths::container($siteName),
             'reportFileName' => $reportName,
         ]);
 

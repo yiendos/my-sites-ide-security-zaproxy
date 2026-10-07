@@ -2,8 +2,10 @@ services:
     zaproxy:
         image: ghcr.io/zaproxy/zaproxy:20260826-weekly
         volumes:
-            # User data lives in the IDE's storage/, outside this package - composer update
-            # replaces the package directory, and would take the reports with it
+            # storage/plugins/zaproxy/ is mounted at /storage by the IDE itself ("storage": true
+            # in composer.json). Its reports/ is mounted again here because ZAP's own
+            # zap-baseline.py / zap-full-scan.py (security:zap-scan without --context) only
+            # read and write /zap/wrk - the same folder as /storage/reports
             - '${IDE_ROOT}/storage/plugins/zaproxy/reports:/zap/wrk'
             # Helper scripts run inside the container (e.g. hud-watcher.sh, started by security:zap-hud)
             - './scripts:/zap/scripts:ro'

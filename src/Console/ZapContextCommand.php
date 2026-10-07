@@ -145,7 +145,7 @@ class ZapContextCommand extends Command
             'enabled' => 'true',
         ]);
 
-        $contextFile = "/zap/wrk/{$target}.context";
+        $contextFile = Paths::container("{$target}.context");
         $hostContextFile = Paths::reports("{$target}.context");
 
         $this->zapApi($io, 'context/action/exportContext', [
