@@ -105,7 +105,7 @@ ways that look like a credentials problem. Work through these in order. The exam
 3. **Recreate nginx** so it registers the alias. A restart isn't enough:
 
    ```
-   docker compose up -d nginx
+   php my-sites-ide servers:nginx-start
    docker inspect nginx    # the hostname should appear under Aliases
    ```
 
@@ -497,7 +497,7 @@ the root `.env`, which is gitignored. This plugin's `env-example` lists the over
 | `ZAP_ASCAN_DATABASES` | (empty) | Database-specific injection rules to keep, comma-separated: `mysql`, `postgresql`, `oracle`, `mssql`, `hypersonic`, `sqlite`, `mongodb`. The rest are disabled, since their time-based probes can't find anything against another database and are slow. Empty runs them all. The generic SQL Injection rule always runs. Applied by `security:zap-daemon` and in each HUD session, matched by rule name. |
 | `ZAP_ASCAN_TIMEOUT_SECONDS` | `1800` | How long the CLI waits for an active scan. The scan keeps running server-side regardless. |
 | `ZAP_TARGET_PASSWORD` | (unset) | Password for flag-based context generation. Keep it in the root `.env`, not this plugin's `.env`. |
-| `IDE_SITE_ALIAS` | `default.test` | Network alias nginx registers, so the container can resolve the target. Must be the exact hostname the context targets. Read by the IDE's `servers/nginx/docker-compose.yml`. |
+| `IDE_SITE_ALIAS` | `default.test` | Network alias nginx registers, so the container can resolve the target. Must be the exact hostname the context targets. Read by the [nginx plugin](https://github.com/yiendos/my-sites-ide-servers-nginx)'s `docker-compose.yml`. |
 | `ZAP_MEM_LIMIT` | `5g` | Container memory cap. |
 | `ZAP_CPUS` / `ZAP_CPUSET` | `4` / `0,1,2,3` | CPU quota and affinity. Both are needed. See below. |
 
@@ -611,10 +611,10 @@ through the nginx network alias. Check three things:
 
 1. `IDE_SITE_ALIAS` in the root `.env` is the exact hostname the context targets (for
    `local.smart-kitchen.io`, not `stockman.test` left over from another target). The
-   default in the IDE's `servers/nginx/docker-compose.yml` applies only when the variable is unset.
+   default in the nginx plugin's `docker-compose.yml` applies only when the variable is unset.
 2. The target's vhost `server_name` includes that hostname.
 3. The nginx container was recreated after changing the alias
-   (`docker compose up -d nginx`). Changing the alias requires recreating the container, not
+   (`php my-sites-ide servers:nginx-start`). Changing the alias requires recreating the container, not
    restarting it. Check the result with `docker inspect nginx`, looking for the alias under
    `Aliases`.
 
