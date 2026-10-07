@@ -18,6 +18,11 @@ final class Paths
     public const STORAGE = 'storage/plugins/zaproxy';
 
     /**
+     * Where the IDE mounts STORAGE in the container ("storage": true in composer.json)
+     */
+    public const CONTAINER_STORAGE = '/storage';
+
+    /**
      * The my-sites-ide project root
      *
      * @return string
@@ -45,7 +50,8 @@ final class Paths
     }
 
     /**
-     * A file within the reports directory, mounted into the container as /zap/wrk
+     * A file within the reports directory on the host - container() gives its
+     * path inside the zaproxy container
      *
      * @param string $file
      * @return string
@@ -80,8 +86,21 @@ final class Paths
     }
 
     /**
-     * Creates the storage directory on first use - Docker would otherwise
-     * create the reports bind mount itself, owned by root on Linux hosts
+     * A reports file as the zaproxy container sees it, under /storage/reports
+     * (ZAP's own wrapper scripts use the same folder as /zap/wrk)
+     *
+     * @param string $file
+     * @return string
+     */
+    public static function container(string $file = ''): string
+    {
+        return self::CONTAINER_STORAGE . '/reports' . ($file === '' ? '' : "/{$file}");
+    }
+
+    /**
+     * Creates a storage subdirectory on first use - the IDE creates
+     * storage/plugins/zaproxy/ itself, but Docker would otherwise create the
+     * reports/ bind mount (/zap/wrk), owned by root on Linux hosts
      *
      * @param string $directory
      * @param string $file

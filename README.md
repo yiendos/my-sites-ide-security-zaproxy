@@ -61,7 +61,8 @@ host (my-sites-ide CLI)
   |- security:zap-install-manifests --> copies stubs/laravel/*.php.stub into the target app, edits its zap-config
 
 zaproxy container (ghcr.io/zaproxy/zaproxy, pinned tag in docker-compose.yml)
-  - storage/plugins/zaproxy/reports/  bind-mounted to /zap/wrk (gitignored output)
+  - storage/plugins/zaproxy/           mounted at /storage by the IDE ("storage": true) - reports/ and contexts/
+  - storage/plugins/zaproxy/reports/   also bind-mounted to /zap/wrk, the only folder ZAP's own scan scripts use
   - scripts/                           bind-mounted read-only to /zap/scripts (helpers run inside the container)
   - zap-home                           named volume at /home/zap (addon state, and the ZAP home-dir lock)
   - network my-sites-ide, so it reaches target sites by their hostname
@@ -358,7 +359,7 @@ XSS rule and the JVM was OOM-killed. The DOM XSS cap applies to the Default Poli
 that policy in the Active Scan dialog.
 
 To import a context by hand instead, use **File → Import Context** and type
-`/zap/wrk/<target>.context` into File Name. The dialog opens in ZAP's own contexts folder,
+`/storage/reports/<target>.context` (or `/zap/wrk/<target>.context`, the same file) into File Name. The dialog opens in ZAP's own contexts folder,
 not the `storage/plugins/zaproxy/reports/` mount.
 
 To start from a clean ZAP session, see [Stopping and restarting](#stopping-and-restarting).

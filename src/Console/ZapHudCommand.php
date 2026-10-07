@@ -190,7 +190,7 @@ class ZapHudCommand extends Command
         $host = str_replace('.', '\.', $name);
         $proxyExclude = "^(?!https?://{$host}(?::\d+)?(?:/|$)).*";
 
-        return ['name' => $name, 'file' => "/zap/wrk/{$target}.context", 'proxy_exclude' => $proxyExclude];
+        return ['name' => $name, 'file' => Paths::container("{$target}.context"), 'proxy_exclude' => $proxyExclude];
     }
 
     /**
